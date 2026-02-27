@@ -517,6 +517,6 @@ The Elysia backend runs automated maintenance tasks:
 
 <div align="center">
 
-*Built for networking education at KMITL*
+*Built for networking education at IT KMITL*
 
 </div>
