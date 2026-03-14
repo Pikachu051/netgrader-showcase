@@ -60,8 +60,8 @@
 
 - **47 slides** of presentation documentation covering architecture and features
 - **3 microservice repositories** with clear separation of concerns
-- **17 backend API modules** covering courses, labs, submissions, GNS3, AI, and more
-- **13 custom YAML task templates** for various network grading scenarios
+- **18 backend API modules** covering courses, labs, submissions, GNS3, AI, themes, and more
+- **8 custom YAML task templates** for various network grading scenarios
 - Supports **IPv4 and IPv6** network configurations
 - Integrated with **GNS3 3.0+** multi-user environments with resource pool isolation
 - Full **CI/CD pipeline** with Jenkins, Docker, health checks, and auto-rollback
@@ -226,15 +226,14 @@ app/
     └── pipeline/
         └── queue_consumer.py  # RabbitMQ job consumer
 custom_tasks/                  # YAML task template library
-├── ospf_neighbor_check.yaml
-├── vlan_validation.yaml
-├── routing_validation.yaml
-├── dhcp_binding.yaml
-├── interface_status_check.yaml
-├── ping_advanced.yaml
-├── linux_service_health.yaml
+├── advanced_ping_test.yaml
+├── console_terminal_test.yaml
 ├── curl_test.yaml
-└── ... (13 templates)
+├── debug_example.yaml
+├── dhcp_binding.yaml
+├── linux_service_health.yaml
+├── test_template.yaml
+└── vlan_verification.yaml
 ```
 
 ### `netgrader-frontend` — Web Interface
@@ -347,7 +346,7 @@ validation:
     description: "At least one OSPF neighbor in Full state"
 ```
 
-**Built-in Template Library** includes: OSPF neighbor checks, VLAN validation, DHCP binding verification, interface status checks, routing table validation, advanced ping tests, Linux service health checks, curl connectivity tests, and more.
+**Built-in Template Library** includes: Advanced ping tests, console terminal checks, curl connectivity tests, DHCP binding verification, Linux service health checks, VLAN verification, testing, and debugging templates.
 
 The frontend includes a **built-in YAML editor** (CodeMirror-based) with syntax highlighting, IntelliSense-style suggestions, and real-time validation.
 
