@@ -111,11 +111,13 @@
 ### Data Flow
 
 1. **Student submits** a lab through the Nuxt web UI (HTTPS)
-2. **Elysia backend** validates the request, creates a submission record in MongoDB, and **publishes a grading job** to RabbitMQ (AMQP)
+2. **Elysia backend** validates the request, creates a submission record in MongoDB, and **publishes a grading job** to RabbitMQ (AMQP)*
 3. **FastAPI worker** consumes the job from the queue, establishes SSH connections to the student's virtual lab devices using **Nornir + Netmiko/NAPALM**
 4. The worker executes grading tasks (ping tests, command checks, NAPALM getters, custom YAML tasks) and **calculates scores** via the Scoring Service
 5. **Progress updates** and **final results** are sent back to the Elysia backend via HTTP callbacks
 6. The Elysia backend streams **real-time progress** to the frontend using **Server-Sent Events (SSE)**
+
+*\*Note: While standard grading jobs use RabbitMQ (AMQP), live template testing bypasses the queue and communicates synchronously via HTTP directly to the FastAPI worker for immediate feedback.*
 
 ---
 
@@ -298,6 +300,7 @@ The grading pipeline is built on a **message queue architecture** for reliabilit
    - **Ping Tasks** — ICMP reachability verification
    - **SSH Connectivity Tests** — Banner/prompt validation with timeout handling
    - **Command Tasks** — CLI command execution with Regex/TextFSM parsing
+   - **Configuration Tasks** — Automated device configuration mapping (e.g., via `netmiko_send_config`) to alter device state and verify changes
    - **NAPALM Tasks** — Vendor-neutral getters (facts, interfaces, BGP, routing tables)
    - **Custom YAML Tasks** — Instructor-defined task templates (see below)
 5. **Scoring**: The `ScoringService` evaluates test cases with multiple comparison types:
@@ -348,7 +351,11 @@ validation:
 
 **Built-in Template Library** includes: Advanced ping tests, console terminal checks, curl connectivity tests, DHCP binding verification, Linux service health checks, VLAN verification, testing, and debugging templates.
 
-The frontend includes a **built-in YAML editor** (CodeMirror-based) with syntax highlighting, IntelliSense-style suggestions, and real-time validation.
+Advanced parsing is supported using standard **Regex**, **TextFSM**, and **Jinja** template parsers.
+
+The frontend includes a **built-in YAML editor** (CodeMirror-based) with an interactive **Template Test Runner**:
+- **Live Testing**: Instructors can test YAML templates against real devices directly from the editor without creating a full grading job.
+- **Dry Runs**: Instructors can test their Regex/TextFSM/Jinja parsing logic and validation rules within the browser using mock input text, independently of a live device connection.
 
 ### 4. IP & Subnet Management
 
@@ -427,6 +434,22 @@ Instructors can describe a lab scenario in natural language and have the system 
 - **Server-Sent Events (SSE)** stream grading progress from backend to frontend
 - **Granular Updates**: Shows current test being executed, tests completed, total tests, and percentage
 - **Visual Progress Component**: `GradingProgress.vue` displays an animated, real-time progress view with per-test results
+
+---
+
+## Security & Performance Architecture
+
+The entire system (Frontend, Elysia API, and FastAPI Worker) recently underwent a massive security hardening phase resulting in a **Comprehensive Security Audit patching 88 discrete vulnerabilities**, achieving a stable, production-ready state.
+
+### Hardened Security
+- **Authentication & Authorization**: Hardened password hashing (migrated from SHA-256 to bcrypt), removed all dev-mode bypasses, enforced strict RBAC (Role-Based Access Control) on all endpoints, and secured internal worker communication with signed `Worker-Callback-Secret` headers.
+- **Input Validation & Injection Prevention**: Added DOMPurify to frontend Markdown rendering to prevent XSS, implemented strict escaping for MongoDB regex queries and LDAP inputs to prevent injection, and secured YAML/TextFSM parsing against arbitrary file reads.
+- **Network Security**: Enforced strict CORS origins, added Server-Side Request Forgery (SSRF) protection with CIDR blocklists for external GNS3 connections, and secured auth cookies (`Secure`, `SameSite=Lax`, `Path=/`).
+
+### Performance Optimizations
+- **Rate Limiting & Stability**: Implemented rate limiting on authentication endpoints, added per-channel connection limits for Server-Sent Events (SSE), and added RabbitMQ reconnection with exponential backoff.
+- **Concurrency Enhancements**: Network connection concurrency (`num_workers`) in the FastAPI worker was increased to 20 for better I/O throughput.
+- **Hardware Protection**: Device snapshot collection now uses `asyncio.Semaphore` to parallelize operations while protecting network hardware from overload. Local ping executions were optimized using `asyncio.to_thread` to prevent blocking the async event loop.
 
 ---
 
